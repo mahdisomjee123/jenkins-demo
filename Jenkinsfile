@@ -3,10 +3,16 @@ pipeline {
 
     environment {
         IMAGE_NAME = "mahdisomjee04/merged-docker" // lowercase is safer
-        IMAGE_TAG = "1.0.0"
+        IMAGE_TAG = "2.0.0"
     }
 
     stages {
+
+        stage('Try') {
+            steps {
+                echo "hello i have startyed"
+            }
+        }
 
         stage('Checkout Code') {
             steps {
@@ -29,7 +35,6 @@ pipeline {
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-creds') {
                         docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push()
-                        docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push("latest") // optional
                     }
                 }
             }
