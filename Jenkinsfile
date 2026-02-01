@@ -21,19 +21,27 @@ pipeline {
             }
         }
 
+        stage('Install kubectl') {
+            steps {
+                sh '''
+                if ! command -v kubectl >/dev/null 2>&1; then
+                  curl -LO https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+                  chmod +x kubectl
+                  mv kubectl /usr/local/bin/
+                fi
+                kubectl version --client
+                '''
+            }
+        }
+
         stage('Deploy to Kubernetes') {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
                     sh '''
-                    echo "Starting kubectl container..."
-                    docker run -d --name kubectl-runner \
-                      -v $KUBECONFIG:/root/.kube/config \
-                      bitnami/kubectl sleep 300
-
-                    docker cp k8s kubectl-runner:/k8s
-                    docker exec kubectl-runner kubectl apply -f /k8s
-
-                    docker rm -f kubectl-runner
+                    export KUBECONFIG=$KUBECONFIG
+                    kubectl apply -f k8s/
+                    kubectl rollout status deployment/merged-app
+                    kubectl get svc merged-app-service
                     '''
                 }
             }
@@ -41,7 +49,7 @@ pipeline {
     }
 
     post {
-        success { echo "Pipeline completed successfully ✅" }
+        success { echo "CI/CD to Kubernetes completed successfully 🚀" }
         failure { echo "Pipeline failed ❌" }
     }
 }
