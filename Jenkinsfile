@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "mahdisomjee04/merged-docker"
+        IMAGE_NAME = "mahdisomjee04/merged-Docker"
         IMAGE_TAG = "1.0.0"
     }
 
@@ -10,7 +10,6 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                echo "Fetching source code from GitHub..."
                 git branch: 'main', url: 'https://github.com/mahdisomjee123/jenkins-demo.git'
             }
         }
@@ -18,17 +17,18 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    echo "Building Docker image..."
-                    // Build using Docker Pipeline plugin
-                    docker.build("${IMAGE_NAME}:${IMAGE_TAG}")
+                    echo "ABC Building Docker image..."
+                    // Docker plugin will use host's Docker socket
+                    def customImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}")
+                    // store it for later push
+                    env.IMAGE_ID = customImage.id
                 }
             }
         }
 
-        stage('Push Docker Image to DockerHub') {
+        stage('Push Docker Image') {
             steps {
                 script {
-                    echo "Pushing Docker image to DockerHub..."
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-creds') {
                         docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push()
                     }
@@ -38,11 +38,7 @@ pipeline {
     }
 
     post {
-        success {
-            echo "Docker image successfully built and pushed 🚀"
-        }
-        failure {
-            echo "Pipeline failed ❌"
-        }
+        success { echo "Docker image successfully built and pushed 🚀" }
+        failure { echo "Pipeline failed ❌" }
     }
 }
