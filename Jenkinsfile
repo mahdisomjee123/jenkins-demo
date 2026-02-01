@@ -11,34 +11,28 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 echo "Fetching source code from GitHub..."
+                git branch: 'main', url: 'https://github.com/mahdisomjee123/jenkins-demo.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                    echo "Building Docker image..."
+                    // Build using Docker Pipeline plugin
+                    docker.build("${IMAGE_NAME}:${IMAGE_TAG}")
                 }
             }
         }
 
-        stage('Login to DockerHub') {
+        stage('Push Docker Image to DockerHub') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
-                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                script {
+                    echo "Pushing Docker image to DockerHub..."
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-creds') {
+                        docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push()
+                    }
                 }
-            }
-        }
-
-        stage('Push Image to DockerHub') {
-            steps {
-                sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
     }
