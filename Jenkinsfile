@@ -2,30 +2,17 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "mahdisomjee04/merged-docker" // lowercase is safer
-        IMAGE_TAG = "3.0.0"
+        IMAGE_NAME = "mahdisomjee04/merged-docker"
+        IMAGE_TAG = "latest"
     }
 
     stages {
-
-        stage('Try') {
-            steps {
-                echo "hello i have startyed"
-            }
-        }
-
-        stage('Checkout Code') {
-            steps {
-                git branch: 'docker-demo', url: 'https://github.com/mahdisomjee123/jenkins-demo.git'
-            }
-        }
 
         stage('Build Docker Image') {
             steps {
                 script {
                     echo "Building Docker image..."
                     def customImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}")
-                    env.IMAGE_ID = customImage.id
                 }
             }
         }
@@ -40,15 +27,15 @@ pipeline {
             }
         }
 
-
         stage('Deploy to Kubernetes') {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
                     sh '''
                     docker run --rm \
                       -v $KUBECONFIG:/root/.kube/config \
-                      bitnami/kubectl \
-                      apply -f k8s/
+                      -v $(pwd):/workspace \
+                      -w /workspace \
+                      bitnami/kubectl apply -f k8s/
                     '''
                 }
             }
@@ -56,7 +43,7 @@ pipeline {
     }
 
     post {
-        success { echo "Docker → Kubernetes deployment completed 🚀" }
+        success { echo "CI/CD → Kubernetes deployment successful 🚀" }
         failure { echo "Pipeline failed ❌" }
     }
 }
