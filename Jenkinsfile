@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "mahdisomjee04/merged-Docker"
+        IMAGE_NAME = "mahdisomjee04/merged-docker" // lowercase is safer
         IMAGE_TAG = "1.0.0"
     }
 
@@ -17,10 +17,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    echo "ABC Building Docker image..."
-                    // Docker plugin will use host's Docker socket
+                    echo "Building Docker image..."
                     def customImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}")
-                    // store it for later push
                     env.IMAGE_ID = customImage.id
                 }
             }
@@ -31,6 +29,7 @@ pipeline {
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-creds') {
                         docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push()
+                        docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push("latest") // optional
                     }
                 }
             }
