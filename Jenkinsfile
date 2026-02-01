@@ -2,35 +2,35 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "mahdisomjee04/merged-docker"
-        IMAGE_TAG = "latest"
+        IMAGE_NAME = "mahdisomjee04/merged-docker:latest"
     }
 
     stages {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    echo "Building Docker image..."
-                    def customImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}")
-                }
+                echo 'Building Docker image...'
+                sh 'docker build -t $IMAGE_NAME .'
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-creds') {
-                        docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push()
-                    }
+                withDockerRegistry(credentialsId: 'dockerhub-creds', url: '') {
+                    sh 'docker push $IMAGE_NAME'
                 }
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
+                withCredentials([file(credentialsId: 'kubernetes-credss', variable: 'KUBECONFIG')]) {
                     sh '''
+                    echo "Workspace:"
+                    ls -l
+                    echo "K8s folder:"
+                    ls -l k8s
+
                     docker run --rm \
                       -v $KUBECONFIG:/root/.kube/config \
                       -v $(pwd):/workspace \
@@ -43,7 +43,11 @@ pipeline {
     }
 
     post {
-        success { echo "CI/CD → Kubernetes deployment successful 🚀" }
-        failure { echo "Pipeline failed ❌" }
+        success {
+            echo 'Pipeline completed successfully ✅'
+        }
+        failure {
+            echo 'Pipeline failed ❌'
+        }
     }
 }
