@@ -9,7 +9,6 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                echo 'Building Docker image...'
                 sh 'docker build -t $IMAGE_NAME .'
             }
         }
@@ -24,18 +23,17 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([file(credentialsId: 'kubernetes-credss', variable: 'KUBECONFIG')]) {
+                withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
                     sh '''
-                    echo "Workspace:"
-                    ls -l
-                    echo "K8s folder:"
-                    ls -l k8s
-
-                    docker run --rm \
+                    echo "Starting kubectl container..."
+                    docker run -d --name kubectl-runner \
                       -v $KUBECONFIG:/root/.kube/config \
-                      -v $(pwd):/workspace \
-                      -w /workspace \
-                      bitnami/kubectl apply -f k8s/
+                      bitnami/kubectl sleep 300
+
+                    docker cp k8s kubectl-runner:/k8s
+                    docker exec kubectl-runner kubectl apply -f /k8s
+
+                    docker rm -f kubectl-runner
                     '''
                 }
             }
@@ -43,11 +41,7 @@ pipeline {
     }
 
     post {
-        success {
-            echo 'Pipeline completed successfully ✅'
-        }
-        failure {
-            echo 'Pipeline failed ❌'
-        }
+        success { echo "Pipeline completed successfully ✅" }
+        failure { echo "Pipeline failed ❌" }
     }
 }
