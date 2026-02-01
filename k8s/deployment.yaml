@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: merged-app-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: merged-app
+  template:
+    metadata:
+      labels:
+        app: merged-app
+    spec:
+      containers:
+        - name: merged-app
+          image: mahdisomjee04/merged-docker:latest
+          ports:
+            - containerPort: 3000
