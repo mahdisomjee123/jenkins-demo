@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "mahdisomjee04/merged-docker" // lowercase is safer
-        IMAGE_TAG = "2.0.0"
+        IMAGE_TAG = "3.0.0"
     }
 
     stages {
@@ -39,10 +39,24 @@ pipeline {
                 }
             }
         }
+
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
+                    sh '''
+                    docker run --rm \
+                      -v $KUBECONFIG:/root/.kube/config \
+                      bitnami/kubectl \
+                      apply -f k8s/
+                    '''
+                }
+            }
+        }
     }
 
     post {
-        success { echo "Docker image successfully built and pushed 🚀" }
+        success { echo "Docker → Kubernetes deployment completed 🚀" }
         failure { echo "Pipeline failed ❌" }
     }
 }
